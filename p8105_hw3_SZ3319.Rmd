@@ -1,0 +1,293 @@
+---
+title: "p8105_hw3_SZ3319"
+author: "Shiyu Zhang"
+date: "2024-10-09"
+output: github_document
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(readxl)
+library(haven)
+library(tidyr)
+library(p8105.datasets)
+library(patchwork)
+```
+
+## Problem 1
+
+Import `ny_noaa` dataset and look at the size and the structure.
+
+```{r, message = FALSE, warning = FALSE}
+data("ny_noaa")
+str(ny_noaa)
+dim(ny_noaa)
+head(ny_noaa)
+skimr::skim(ny_noaa)
+```
+This dataset `ny_noaa` is weather observation data from the National Oceanic and Atmospheric Administration (NOAA) in New York, which includes **`r nrow(ny_noaa)`** observations and **`r ncol(ny_noaa)`** variables. 
+
+The **`r ncol(ny_noaa)`** important variables are: **`r names(ny_noaa)`**:
+
+* `id` (Weather Station ID): the unique identifier for each observation station. **Type:**Character.
+
+* `date` (Date of Observation): the date of the weather observation in the format YYYY-MM-DD. **Type:** Date.
+
+* `prcp` (Precipitation): the precipitation amount in tenths of a millimeter, indicating the amount of rain that fell on a specific date. **Type:** Integer, which need to be transferred into numeric.
+
+* `snow` (Snowfall): the snowfall amount in millimeters, indicating the depth of new snow that fell on a specific date. **Type:** Integer, which need to be transferred into numeric.
+
+* `snwd` (Snow Depth): the snow depth in millimeters, indicating the thickness of the snowpack on a specific date. **Type:** Integer, which need to be transferred into numeric.
+
+* `tmax` (Maximum Temperature): the maximum temperature in tenths of degrees Celsius, indicating the highest temperature recorded on a specific date. **Type:** Character, which need to be transferred into numeric.
+
+* `tmin` (Minimum Temperature): the minimum temperature in tenths of degrees Celsius, indicating the lowest temperature recorded on a specific date. **Type:** Character, which need to be transferred into numeric.
+
+There are 
+
+
+
+### 1.1 Clean the dataset
+
+* Clean the dataset
+```{r}
+ny_noaa = 
+  data.frame(ny_noaa) |> 
+  janitor::clean_names() |> 
+  mutate(
+    year = year(date),
+    month = month(date),
+    day = day(date),
+    across(c(year, month, day, prcp, snow, snwd, tmin, tmax), as.numeric),
+    prcp = prcp / 10,
+    tmax = tmax / 10,
+    tmin = tmin / 10
+  )
+```
+
+View the 
+```{r}
+common_snow = 
+  ny_noaa  |> 
+  filter(snow >= 0)  |> 
+  group_by(snow) |> 
+  summarise(count = n()) |> 
+  arrange(desc(count))  |> 
+  head(10)
+```
+The result indicates that:
+
+* **0 mm** snowfall is most common, which mens that on the majority of days, there was no snowfall in the New York area.
+* Snowfall amounts of 25 mm or less are relatively common, reflecting winter snowfall patterns.
+* Although snowfall greater than 100 mm is not common, it can still occur, particularly during extreme weather events.
+
+### 1.2 Creat a 
+
+```{r}
+ny_noaa_month = 
+  ny_noaa |>
+  filter(
+    month == c(1, 7),
+    !is.na(tmax)
+  ) |> 
+  mutate(
+    month = as.character(month),
+    month = case_match(
+      month,
+      "1" ~ "January",
+      "7" ~ "July"
+    )
+  ) |> 
+  group_by(id, year, month) |> 
+  summarize(avg_tmax = mean(tmax, na.rm = TRUE)) |> 
+  ungroup()
+  
+ny_noaa_month |> 
+  ggplot(aes(x = year, y = avg_tmax, colour = id)) +
+  geom_line(alpha = .3) +
+  labs(
+    title = "Line graph of average maximum temperatures per year",
+       x = "Date",
+       y = "Maximum Temp (°C)"
+  ) +
+  facet_wrap(. ~ month) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+From the plot, it shows that:
+
+* The clear temperature difference between January (winter) and July (summer) is consistent with expected seasonal variation.
+
+* Overall, the trends in average maximum temperatures over the years are consistent across different stations. Individual outliers may be attributed to extreme climatic events occurring at specific weather station locations.
+
+* Both months reflect seasonal temperature patterns typical for winter and summer. While January generally shows lower temperatures due to winter conditions, and July shows higher temperatures due to summer heat, both months may exhibit similar trends in their respective temperature increases or decreases over the years.
+
+### 1.3 Create a 
+```{r}
+ny_noaa_clean = ny_noaa %>%
+  janitor::clean_names() %>%
+  mutate(
+    snow = ifelse(snow > 0 & snow < 100, snow, NA)# Keep only snow values between 0 and 100
+  ) |> 
+   filter(
+    !is.na(year),
+    !is.na(snow)
+    )
+
+# Panel (i): tmax vs tmin
+panel_i <- 
+  ny_noaa |> 
+  filter(
+    !is.na(tmax),
+    !is.na(tmin)
+    ) |> 
+  ggplot(aes(x = tmin, y = tmax)) +
+  geom_hex() + # Using a hexbin plot instead of scatter
+  labs(
+    title = "tmax vs tmin",
+    x = "Minimum Temperature (tenths of degrees C)",
+    y = "Maximum Temperature (tenths of degrees C)"
+  ) +
+  theme_minimal()
+
+# Panel (ii): Distribution of snowfall
+panel_ii = 
+  ny_noaa_clean |> 
+  ggplot(aes(x = factor(year), y = snow, fill = factor(year))) +
+  geom_violin(alpha = .3) +
+  labs(
+    title = "Distribution of Snowfall (0 < snow < 100) by Year",
+    x = "Year",
+    y = "Snowfall (mm)"
+  ) +
+  scale_x_discrete(
+    breaks = seq(
+      min(pull(ny_noaa_clean, year), na.rm = TRUE),
+      max(pull(ny_noaa_clean, year), na.rm = TRUE),
+      by = 5
+    )
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+(panel_i + panel_ii) # combine 2 plots 
+
+```
+
+
+## Problem 2
+
+### 2.1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r, message = FALSE, warning = FALSE}
+
+
+```
+
+
+
+
+
+```{r, message = FALSE, warning = FALSE}
+
+
+```
+
+
+
+
+
+
+
+
+
+```{r, message = FALSE, warning = FALSE}
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+```{r, message = FALSE, warning = FALSE}
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+```{r, message = FALSE, warning = FALSE}
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+```{r, message = FALSE, warning = FALSE}
+
+
+```
+
+
+
+
+
+
+
+
+
+```{r, message = FALSE, warning = FALSE}
+
+
+```
