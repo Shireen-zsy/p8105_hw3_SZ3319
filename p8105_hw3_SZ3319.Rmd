@@ -150,27 +150,20 @@ panel_i <-
   geom_hex() + # Using a hexbin plot instead of scatter
   labs(
     title = "tmax vs tmin",
-    x = "Minimum Temperature (tenths of degrees C)",
-    y = "Maximum Temperature (tenths of degrees C)"
-  ) +
-  theme_minimal()
+    x = "Minimum Temperature (C)",
+    y = "Maximum Temperature (C)"
+  ) 
 
+library(ggridges)
 # Panel (ii): Distribution of snowfall
 panel_ii = 
   ny_noaa_clean |> 
-  ggplot(aes(x = factor(year), y = snow, fill = factor(year))) +
-  geom_violin(alpha = .3) +
+  ggplot(aes(y = factor(year), x = snow, fill = factor(year))) +
+  geom_density_ridges()+
   labs(
     title = "Distribution of Snowfall (0 < snow < 100) by Year",
-    x = "Year",
-    y = "Snowfall (mm)"
-  ) +
-  scale_x_discrete(
-    breaks = seq(
-      min(pull(ny_noaa_clean, year), na.rm = TRUE),
-      max(pull(ny_noaa_clean, year), na.rm = TRUE),
-      by = 5
-    )
+    y = "Year",
+    x = "Snowfall (mm)"
   ) +
   theme_minimal() +
   theme(legend.position = "none")
@@ -182,7 +175,10 @@ panel_ii =
 
 ## Problem 2
 
-### 2.1
+### 2.1 
+
+### 2.2
+
 
 
 
