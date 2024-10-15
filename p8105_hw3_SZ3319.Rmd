@@ -17,13 +17,14 @@ library(haven)
 library(tidyr)
 library(p8105.datasets)
 library(patchwork)
+library(knitr)
 ```
 
 ## Problem 1
 
 Import `ny_noaa` dataset and look at the size and the structure.
 
-```{r, message = FALSE, warning = FALSE}
+```{r, echo = TRUE, results = "hide", message = FALSE, warning = FALSE}
 data("ny_noaa")
 str(ny_noaa)
 dim(ny_noaa)
@@ -90,7 +91,8 @@ The result indicates that:
 
 ### 1.2 Creat a 
 
-```{r}
+
+```{r, message = FALSE, warning = FALSE}
 ny_noaa_month = 
   ny_noaa |>
   filter(
@@ -108,7 +110,11 @@ ny_noaa_month =
   group_by(id, year, month) |> 
   summarize(avg_tmax = mean(tmax, na.rm = TRUE)) |> 
   ungroup()
-  
+```
+
+Creat a plot.
+
+```{r}
 ny_noaa_month |> 
   ggplot(aes(x = year, y = avg_tmax, colour = id)) +
   geom_line(alpha = .3) +
@@ -121,6 +127,7 @@ ny_noaa_month |>
   theme_minimal() +
   theme(legend.position = "none")
 ```
+
 
 From the plot, it shows that:
 
@@ -180,7 +187,7 @@ panel_ii =
 
 ### 2.0 Load the datesets
 
-```{r}
+```{r, echo = TRUE, results = "hide", message = FALSE, warning = FALSE}
 demo_df = 
   read_csv("data/nhanes_covar.csv", 
            na = c("NA", "", "."), 
@@ -192,7 +199,6 @@ ac_df =
   read_csv("data/nhanes_accel.csv", na = c("NA", "", ".")) |> 
   janitor::clean_names() |> 
   na.omit()
-
 ```
 
 
@@ -217,22 +223,20 @@ demo_clean_df =
                  labels = c("male", "female"), 
                  ordered = TRUE)
   ) 
+```
 
-
+Joint the table
+```{r}
 total_df = 
   demo_clean_df |> 
   left_join(ac_df, by = "seqn")
-
-#str(total_df)
-
-
 ```
 
 ### 2.2 age table and plot
 
 age table
 
-```{r}
+```{r, message = FALSE, warning = FALSE}
 edu_gender_table = 
   total_df  |> 
   group_by(education, sex)  |> 
@@ -241,14 +245,15 @@ edu_gender_table =
 
 print(edu_gender_table)
 
-library(knitr)
+
 kable(edu_gender_table, 
       col.names = c("Education Level", "Men", "Women"), 
       caption = "Number of Men and Women in Each Education Category")
 ```
+
 age plot
 
-```{r}
+```{r, message = FALSE, warning = FALSE}
 total_df |> 
   ggplot(aes(x = age, fill = sex)) +
   geom_histogram(bins = 20, position = "dodge") +
@@ -262,16 +267,42 @@ total_df |>
   theme(legend.position = "bottom")
 ```
 
-### 2.3 
+
+### 2.3 activity table and plot
+
+Create the total activity variable
 
 ```{r}
+activity_df = 
+  total_df |> 
+  mutate(
+    total_activity = 
+      rowSums(select(total_df, starts_with("min")),
+              na.rm = TRUE)
+  ) |> 
+  select(seqn, sex, age, bmi, education, total_activity, everything())
+```
 
+Plot total activity vs age
+
+```{r, message = FALSE, warning = FALSE}
+activity_df |> 
+  ggplot(aes(x = age, y = total_activity, color = sex)) +
+  geom_point(alpha = 0.5) + 
+  geom_smooth(method = "loess", se = FALSE) + 
+  facet_grid(. ~ education) + 
+  labs(
+    title = "Total Activity vs Age by Education Level",
+    x = "Age",
+    y = "Total Activity",
+    color = "Sex"
+  ) +
+  theme_minimal()
 ```
 
 
 
-
-
+### 2.4 NOFINISH
 
 
 
