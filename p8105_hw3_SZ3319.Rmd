@@ -30,11 +30,12 @@ dim(ny_noaa)
 head(ny_noaa)
 skimr::skim(ny_noaa)
 ```
+
 This dataset `ny_noaa` is weather observation data from the National Oceanic and Atmospheric Administration (NOAA) in New York, which includes **`r nrow(ny_noaa)`** observations and **`r ncol(ny_noaa)`** variables. 
 
 The **`r ncol(ny_noaa)`** important variables are: **`r names(ny_noaa)`**:
 
-* `id` (Weather Station ID): the unique identifier for each observation station. **Type:**Character.
+* `id` (Weather Station ID): the unique identifier for each observation station. **Type:** Character.
 
 * `date` (Date of Observation): the date of the weather observation in the format YYYY-MM-DD. **Type:** Date.
 
@@ -80,6 +81,7 @@ common_snow =
   arrange(desc(count))  |> 
   head(10)
 ```
+
 The result indicates that:
 
 * **0 mm** snowfall is most common, which mens that on the majority of days, there was no snowfall in the New York area.
@@ -119,6 +121,7 @@ ny_noaa_month |>
   theme_minimal() +
   theme(legend.position = "none")
 ```
+
 From the plot, it shows that:
 
 * The clear temperature difference between January (winter) and July (summer) is consistent with expected seasonal variation.
@@ -175,10 +178,95 @@ panel_ii =
 
 ## Problem 2
 
-### 2.1 
+### 2.0 Load the datesets
 
-### 2.2
+```{r}
+demo_df = 
+  read_csv("data/nhanes_covar.csv", 
+           na = c("NA", "", "."), 
+           skip = 4) |> 
+  janitor::clean_names()
+str(demo_df)
 
+ac_df = 
+  read_csv("data/nhanes_accel.csv", na = c("NA", "", ".")) |> 
+  janitor::clean_names() |> 
+  na.omit()
+
+```
+
+
+### 2.1 Clean
+
+Include all originally observed variables; 
+exclude participants less than 21 years of age, and those with missing demographic data; 
+and encode data with reasonable variable classes (i.e. not numeric, and using factors with the ordering of tables and plots in mind).
+
+```{r}
+demo_clean_df = 
+  demo_df |> 
+  filter(age >= 21) |>
+  na.omit() |> 
+  mutate(
+    education = factor(education, 
+                       levels = c("1", "2", "3"), 
+                       labels = c("Less than high school", "High school equivalent", "More than high school"),
+                       ordered = TRUE),
+    sex = factor(sex, 
+                 levels = c("1", "2"),
+                 labels = c("male", "female"), 
+                 ordered = TRUE)
+  ) 
+
+
+total_df = 
+  demo_clean_df |> 
+  left_join(ac_df, by = "seqn")
+
+#str(total_df)
+
+
+```
+
+### 2.2 age table and plot
+
+age table
+
+```{r}
+edu_gender_table = 
+  total_df  |> 
+  group_by(education, sex)  |> 
+  summarize(count = n())  |> 
+  pivot_wider(names_from = sex, values_from = count, values_fill = 0)
+
+print(edu_gender_table)
+
+library(knitr)
+kable(edu_gender_table, 
+      col.names = c("Education Level", "Men", "Women"), 
+      caption = "Number of Men and Women in Each Education Category")
+```
+age plot
+
+```{r}
+total_df |> 
+  ggplot(aes(x = age, fill = sex)) +
+  geom_histogram(bins = 20, position = "dodge") +
+  facet_wrap(~ education) +
+  labs(
+    title = "Age Distribution by Education Level and Gender",
+    x = "Age",
+    y = "Count"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+### 2.3 
+
+```{r}
+
+```
 
 
 
