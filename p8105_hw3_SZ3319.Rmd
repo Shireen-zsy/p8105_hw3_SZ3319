@@ -365,11 +365,92 @@ activity_p2
 
 ## Problem 3
 
-### 3.0 Load the 
+### 3.0 Importe the dataset
+
+```{r}
+jan20_df = 
+  read_csv("data/citibike/Jan 2020 Citi.csv") |> 
+  janitor::clean_names() |> 
+  drop_na() |> 
+  mutate(
+    year = 2020,
+    month = "January"
+  )
+  
+
+july20_df = 
+  read_csv("data/citibike/July 2020 Citi.csv") |>
+  janitor::clean_names() |> 
+  drop_na() |> 
+  mutate(
+    year = 2020,
+    month = "July"
+  )
+
+jan24_df = 
+  read_csv("data/citibike/Jan 2024 Citi.csv") |> 
+   janitor::clean_names() |> 
+  drop_na() |> 
+  mutate(
+    year = 2024,
+    month = "January"
+  )
+
+july24_df = 
+  read_csv("data/citibike/July 2024 Citi.csv") |> 
+   janitor::clean_names() |> 
+  drop_na() |> 
+  mutate(
+    year = 2024,
+    month = "July"
+  )
+
+```
+
+Combine
+
+```{r}
+citi_total = bind_rows(jan20_df, jan24_df, july20_df, july24_df)
+
+head(citi_total)
+```
 
 
 
+### 3. welcome station
 
+```{r}
+top_station = 
+  citi_total |> 
+  filter( month == "July" & year == 2024) |> 
+  group_by(start_station_name) |> 
+  mutate(num_rides = n())|> 
+  distinct(start_station_name, num_rides) |> 
+  ungroup() |> 
+  slice_max(order_by = num_rides, n = 5)
+  
+
+print(top_station)
+```
+
+
+
+### 3. time effect
+
+```{r}
+ride_duration = citi_total |> 
+  group_by(year, month, weekdays) %>%
+  summarise(median_duration = median(duration, na.rm = TRUE), .groups = 'drop')
+
+ide_duration_plot <- ggplot(ride_duration, aes(x = weekdays, y = median_duration, fill = month)) +
+  geom_bar(stat = "identity", position = "dodge") +  # 使用条形图
+  facet_wrap(~ year) +  # 按年份分面
+  labs(title = "Median Ride Duration by Day of the Week and Month",
+       x = "Day of the Week",
+       y = "Median Ride Duration (seconds)",
+       fill = "Month") +
+  theme_minimal()
+```
 
 
 
