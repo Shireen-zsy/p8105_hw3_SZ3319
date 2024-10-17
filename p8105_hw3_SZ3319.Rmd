@@ -5,19 +5,14 @@ date: "2024-10-09"
 output: github_document
 ---
 
-```{r, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+## Set up packages
 
-
-```{r setup, include=FALSE}
+```{r setup, results = "hide", message = FALSE, warning = FALSE}
 library(tidyverse)
-library(readxl)
-library(haven)
-library(tidyr)
 library(p8105.datasets)
 library(patchwork)
 library(knitr)
+library(ggridges)
 ```
 
 ## Problem 1
@@ -50,14 +45,14 @@ The **`r ncol(ny_noaa)`** important variables are: **`r names(ny_noaa)`**:
 
 * `tmin` (Minimum Temperature): the minimum temperature in tenths of degrees Celsius, indicating the lowest temperature recorded on a specific date. **Type:** Character, which need to be transferred into numeric.
 
-There are 
 
 
 
 ### 1.1 Clean the dataset
 
-* Clean the dataset
-```{r}
+Clean the dataset
+
+```{r, results = "hide", message = FALSE, warning = FALSE}
 ny_noaa = 
   data.frame(ny_noaa) |> 
   janitor::clean_names() |> 
@@ -72,8 +67,9 @@ ny_noaa =
   )
 ```
 
-View the 
-```{r}
+View the top 10 snow fall values.
+
+```{r, message = FALSE, warning = FALSE}
 common_snow = 
   ny_noaa  |> 
   filter(snow >= 0)  |> 
@@ -81,6 +77,10 @@ common_snow =
   summarise(count = n()) |> 
   arrange(desc(count))  |> 
   head(10)
+
+kable(common_snow, 
+      col.names = c("Snow", "Count"), 
+      caption = "Top 10 Snowfall Values")
 ```
 
 The result indicates that:
@@ -89,7 +89,7 @@ The result indicates that:
 * Snowfall amounts of 25 mm or less are relatively common, reflecting winter snowfall patterns.
 * Although snowfall greater than 100 mm is not common, it can still occur, particularly during extreme weather events.
 
-### 1.2 Creat a 
+### 1.2 Creat line graph of average maximum temperatures
 
 
 ```{r, message = FALSE, warning = FALSE}
@@ -112,14 +112,14 @@ ny_noaa_month =
   ungroup()
 ```
 
-Creat a plot.
+Create a plot.
 
-```{r}
+```{r, results = "hide", message = FALSE, warning = FALSE}
 ny_noaa_month |> 
   ggplot(aes(x = year, y = avg_tmax, colour = id)) +
   geom_line(alpha = .3) +
   labs(
-    title = "Line graph of average maximum temperatures per year",
+    title = "Line graph of average maximum temperatures",
        x = "Date",
        y = "Maximum Temp (°C)"
   ) +
@@ -127,7 +127,6 @@ ny_noaa_month |>
   theme_minimal() +
   theme(legend.position = "none")
 ```
-
 
 From the plot, it shows that:
 
@@ -137,10 +136,11 @@ From the plot, it shows that:
 
 * Both months reflect seasonal temperature patterns typical for winter and summer. While January generally shows lower temperatures due to winter conditions, and July shows higher temperatures due to summer heat, both months may exhibit similar trends in their respective temperature increases or decreases over the years.
 
-### 1.3 Create a 
-```{r}
-ny_noaa_clean = ny_noaa %>%
-  janitor::clean_names() %>%
+### 1.3 Create a joint plot
+
+```{r, message = FALSE, warning = FALSE}
+ny_noaa_clean = ny_noaa |> 
+  janitor::clean_names()  |> 
   mutate(
     snow = ifelse(snow > 0 & snow < 100, snow, NA)# Keep only snow values between 0 and 100
   ) |> 
@@ -150,7 +150,7 @@ ny_noaa_clean = ny_noaa %>%
     )
 
 # Panel (i): tmax vs tmin
-panel_i <- 
+panel_i = 
   ny_noaa |> 
   filter(
     !is.na(tmax),
@@ -163,24 +163,22 @@ panel_i <-
     x = "Minimum Temperature (C)",
     y = "Maximum Temperature (C)"
   ) +
-  theme(legend.position = "bottom")
+  theme(legend.position = "bottom", legend.text = element_text(angle = 45, hjust = 0.8, size = 8  ))
 
-library(ggridges)
 # Panel (ii): Distribution of snowfall
 panel_ii = 
   ny_noaa_clean |> 
   ggplot(aes(y = factor(year), x = snow, fill = factor(year))) +
   geom_density_ridges()+
   labs(
-    title = "Distribution of Snowfall (0 < snow < 100) by Year",
+    title = "Distribution of Snowfall by Year",
     y = "Year",
     x = "Snowfall (mm)"
   ) +
   theme_minimal() +
   theme(legend.position = "none")
 
-(panel_i + panel_ii) # combine 2 plots 
-
+print(panel_i + panel_ii) # combine 2 plots 
 ```
 
 
@@ -203,13 +201,13 @@ ac_df =
 ```
 
 
-### 2.1 Clean
+### 2.1 Clean the dataset and joint the table
 
-Include all originally observed variables; 
-exclude participants less than 21 years of age, and those with missing demographic data; 
-and encode data with reasonable variable classes (i.e. not numeric, and using factors with the ordering of tables and plots in mind).
+* Include all originally observed variables; 
+* exclude participants less than 21 years of age, and those with missing demographic data; 
+* encode data with reasonable variable classes.
 
-```{r}
+```{r, results = "hide", message = FALSE, warning = FALSE}
 demo_clean_df = 
   demo_df |> 
   filter(age >= 21) |>
@@ -217,7 +215,9 @@ demo_clean_df =
   mutate(
     education = factor(education, 
                        levels = c("1", "2", "3"), 
-                       labels = c("Less than high school", "High school equivalent", "More than high school"),
+                       labels = c("Less than high school",
+                                  "High school equivalent",
+                                  "More than high school"),
                        ordered = TRUE),
     sex = factor(sex, 
                  levels = c("1", "2"),
@@ -227,15 +227,18 @@ demo_clean_df =
 ```
 
 Joint the table
+
 ```{r}
 total_df = 
   demo_clean_df |> 
   left_join(ac_df, by = "seqn")
 ```
 
-### 2.2 age table and plot
 
-age table
+
+### 2.2 Age table and plot
+
+Create table of number of men and women in dofferent education levels
 
 ```{r, message = FALSE, warning = FALSE}
 edu_gender_table = 
@@ -249,14 +252,13 @@ kable(edu_gender_table,
       caption = "Number of Men and Women in Each Education Category")
 ```
 
-age plot
+Create Age Distribution by Education Level and Gender
 
 ```{r, message = FALSE, warning = FALSE}
 total_df |> 
   ggplot(aes(x = age, fill = sex)) +
   geom_histogram(bins = 20, position = "dodge") +
-  facet_wrap(~ education) +
-  scale_color_brewer(palette = "Set2") +
+  facet_wrap(. ~ education) +
   labs(
     title = "Age Distribution by Education Level and Gender",
     x = "Age",
@@ -265,9 +267,16 @@ total_df |>
   theme_minimal() +
   theme(legend.position = "bottom")
 ```
+* From the table, the highest number of individuals is found in the "More than high school" category for both genders. Notably, in the "High school equivalent" category, the number of women is lower than that of men, while the "Less than high school" category shows a relatively balanced gender distribution.
+
+From the plot:
+
+* Less than high school: The age distribution in this category is relatively uniform, with a close number of men and women, but overall counts are low.
+* High school equivalent: This category shows a sparser distribution, with a slightly higher number of men than women, particularly in certain age ranges.
+* More than high school: There is a noticeable increase in numbers for ages between 20 and 40, with both men and women displaying similar distribution trends, though men dominate in some specific age ranges.
 
 
-### 2.3 activity table and plot
+### 2.3 Activity table and plot
 
 Create the total activity variable
 
@@ -300,12 +309,14 @@ activity_df |>
   theme_minimal()
 ```
 
+The plot suggests that total activity decreases with age for all education levels, with some variations between males and females across different education levels. 
 
 
-### 2.4 Min
+### 2.4 24-Hour Activity Time Course by Education Level and Sex
 
-create long table
-```{r}
+Create long table
+
+```{r, message = FALSE, warning = FALSE}
 activity_long_df = 
   activity_df |> 
   pivot_longer(cols = starts_with("min"), names_to = "minute", values_to = "activity")  |> 
@@ -314,11 +325,9 @@ activity_long_df =
   )
 ```
 
+**24-Hour Activity Time Course by Education Level and Sex**
 
-
-
-plot1
-```{r}
+```{r, message = FALSE, warning = FALSE}
 activity_p1 = 
   activity_long_df |> 
   ggplot(aes(x = minute, y = activity, color = sex)) +
@@ -334,12 +343,26 @@ activity_p1 =
     color = "sex"
   ) +
   theme_minimal()
+
+print(activity_p1)
 ```
+From the plot:
 
-p1 is not fancy and is hard to 
-so, create p2
+* Most individuals show higher activity levels in the morning and afternoon, with lower activity at night.
+* While there are slight differences in the activity patterns between males and females at certain times of the day, the overall trend is similar.
+*	Education level appears to influence activity patterns, particularly in the “More than high school” group, where females show some activity peaks during the day.
 
-```{r}
+However, P1 has some cons:
+
+* Since all individual data points are displayed, the plot can contain a lot of noise, especially from outliers or extreme values, which might obscure the overall trend.
+* the large number of data points can make it difficult to clearly see the overall pattern, as individual variability might overshadow the big picture, especially in densely populated areas of the plot.
+* scatter points overlap, making it difficult to accurately assess the overall situation during certain time periods, especially when differences between genders or education levels are subtle.
+
+So, I will create a new plot.
+
+**24-Hour Mean Activity by Education Level and Sex**
+
+```{r, message = FALSE, warning = FALSE}
 activity_p2 =
   activity_long_df  |> 
   group_by(education, sex, minute)  |> 
@@ -360,18 +383,20 @@ activity_p2 =
 activity_p2
 ```
 
+* Activity peaks in the morning and midday, especially between 7 AM and noon. Afternoon and evening activity decreases, and nighttime activity levels off.
+* Females tend to have higher activity levels at certain times of the day, particularly in the “More than high school” group.
+* While there are some differences in activity patterns by education level, the overall trends remain quite similar.
 
 
 
 ## Problem 3
 
-### 3.0 Importe the dataset
+### 3.0 Import the datasets
 
-```{r}
+```{r, results = "hide", message = FALSE, warning = FALSE}
 jan20_df = 
-  read_csv("data/citibike/Jan 2020 Citi.csv") |> 
+  read_csv("data/citibike/Jan 2020 Citi.csv", na = c("NA", ".", "")) |> 
   janitor::clean_names() |> 
-  drop_na() |> 
   mutate(
     year = 2020,
     month = "January"
@@ -379,27 +404,24 @@ jan20_df =
   
 
 july20_df = 
-  read_csv("data/citibike/July 2020 Citi.csv") |>
+  read_csv("data/citibike/July 2020 Citi.csv", na = c("NA", ".", "")) |>
   janitor::clean_names() |> 
-  drop_na() |> 
   mutate(
     year = 2020,
     month = "July"
   )
 
 jan24_df = 
-  read_csv("data/citibike/Jan 2024 Citi.csv") |> 
-   janitor::clean_names() |> 
-  drop_na() |> 
+  read_csv("data/citibike/Jan 2024 Citi.csv", na = c("NA", ".", "")) |> 
+   janitor::clean_names() |>  
   mutate(
     year = 2024,
     month = "January"
   )
 
 july24_df = 
-  read_csv("data/citibike/July 2024 Citi.csv") |> 
+  read_csv("data/citibike/July 2024 Citi.csv", na = c("NA", ".", "")) |> 
    janitor::clean_names() |> 
-  drop_na() |> 
   mutate(
     year = 2024,
     month = "July"
@@ -407,19 +429,44 @@ july24_df =
 
 ```
 
-Combine
+Combine the data in a total dataframe.
 
-```{r}
+```{r, results = "hide", message = FALSE, warning = FALSE}
 citi_total = bind_rows(jan20_df, jan24_df, july20_df, july24_df)
 
 head(citi_total)
+str(citi_total)
+dim(citi_total)
+skimr::skim(citi_total)
 ```
 
+After cleaning and merging the data, the final dataset consists of 99,485 observations and 9 variables. New variables, "year" and "month," were created and converted to character type. Key variables in the dataset include "ride_id," "rideable_type," "duration," "member_casual," among others.
+
+### 3.1 Ride count table
+
+```{r, message = FALSE, warning = FALSE}
+ride_count_table =
+  citi_total |> 
+  drop_na(member_casual) |> 
+  group_by(year, month, member_casual) |> 
+  summarise(total_rides = n(), .groups = 'drop') |> 
+  pivot_wider(names_from = member_casual, values_from = total_rides, values_fill = 0)
+
+kable(ride_count_table, caption = "Total Number of Rides by Year, Month, and User Type")
+```
+
+* In 2020, both January and July have significantly more rides from members compared to casual riders, with July showing a notable increase in rides for both groups.
+
+* In 2024, the trend continues, with members having more rides than casual riders. However, the gap between casual and member rides seems to narrow compared to 2020, especially in July, where casual rides see a sharp increase.
+
+* In both 2020 and 2024, the number of rides in July is higher than in January for both casual and member users. This is likely due to better weather conditions in summer, leading to more people opting for bike rides.
+
+* Members consistently have more rides than casual users across all months and years, though the difference is more pronounced in 2020. In 2024, casual riders show a significant increase in ride numbers, particularly in July.
 
 
-### 3. welcome station
+### 3.2 Top 5 stations
 
-```{r}
+```{r, message = FALSE, warning = FALSE}
 top_station = 
   citi_total |> 
   filter( month == "July" & year == 2024) |> 
@@ -433,115 +480,78 @@ top_station =
 print(top_station)
 ```
 
+The 5 Most Popular Starting Stations For July 2024.
 
+### 3.3 Ride durition by day
 
-### 3. time effect
-
-```{r}
+```{r, message = FALSE, warning = FALSE}
+# having ride durition dataframe
 ride_duration = citi_total |> 
-  group_by(year, month, weekdays) %>%
+  group_by(year, month, weekdays) |> 
   summarise(median_duration = median(duration, na.rm = TRUE), .groups = 'drop')
 
-ide_duration_plot <- ggplot(ride_duration, aes(x = weekdays, y = median_duration, fill = month)) +
-  geom_bar(stat = "identity", position = "dodge") +  # 使用条形图
-  facet_wrap(~ year) +  # 按年份分面
-  labs(title = "Median Ride Duration by Day of the Week and Month",
+# making plot of Median Ride Duration by Day of the Week and Month
+ride_duration_plot =
+  ride_duration |> 
+  ggplot(aes(x = weekdays, y = median_duration, fill = month)) +
+  geom_bar(stat = "identity", position = "dodge") +  
+  facet_wrap(~ year) + 
+  labs(title = "Median Ride Duration by Day",
        x = "Day of the Week",
        y = "Median Ride Duration (seconds)",
        fill = "Month") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.8, size = 8))
+
+print(ride_duration_plot)
+```
+
+The plot shows that:
+
+* Ride durations in July (blue bars) are generally longer than in January (red bars) for most days of the week. This could be due to the warmer weather encouraging longer rides, while colder months may deter long trips.
+
+*  In 2020, median ride durations for some days (e.g., Saturday and Sunday) are noticeably higher compared to 2024. This may reflect the impact of the pandemic in 2020, as it influenced people’s mobility and outdoor activities.
+
+* In both 2020 and 2024, weekend days (e.g., Friday, Saturday, Sunday) tend to have longer ride durations than weekdays. This might be because people have more leisure time on weekends, allowing for longer rides.
+
+
+
+
+### 3.4 Impact of Month, Membership Status, and Bike Type on Ride(2024)
+
+Select data from the total dataset.
+
+```{r}
+citi_2024 =
+  citi_total |> 
+  filter(year == 2024) 
+```
+
+Out put the plot to show the impact of month, membership status, and bike type on duration.
+
+```{r, message = FALSE, warning = FALSE}
+ride_duration_plot = 
+  citi_2024 |> 
+  ggplot(aes(x = month, y = duration, fill = rideable_type)) +
+  geom_violin(alpha = .5, trim = FALSE) + 
+  scale_y_log10() +
+  facet_grid(.~ member_casual) + 
+  labs(
+    title = "Impact of Month, Membership Status, and Bike Type on Ride(2024)",
+    x = "Month",
+    y = "Duration (log scale)",
+    fill = "Bike Type"
+  ) +
   theme_minimal()
+
+print(ride_duration_plot)
 ```
 
+The plot shows that:
 
+* For casual users, the duration of rides on traditional bikes is consistently higher than on electric bikes, regardless of the month. However, it's noteworthy that ride durations in July are significantly longer than those in January.
 
+* Member users show no notable difference in bike type choice during January, but in July, they tend to have longer ride durations on electric bikes compared to traditional ones. This suggests a seasonal preference for electric bikes during the summer months for longer rides.
 
+* Casual users tend to have longer ride durations compared to member users. This could be because casual users may opt for Citi Bikes for longer trips, whereas shorter distances might be covered by walking or other means.
 
-
-
-
-```{r, message = FALSE, warning = FALSE}
-
-
-```
-
-
-
-
-
-```{r, message = FALSE, warning = FALSE}
-
-
-```
-
-
-
-
-
-
-
-
-
-```{r, message = FALSE, warning = FALSE}
-
-
-```
-
-
-
-
-
-
-
-
-
-
-
-
-```{r, message = FALSE, warning = FALSE}
-
-
-```
-
-
-
-
-
-
-
-
-
-
-
-```{r, message = FALSE, warning = FALSE}
-
-
-```
-
-
-
-
-
-
-
-
-
-
-
-
-```{r, message = FALSE, warning = FALSE}
-
-
-```
-
-
-
-
-
-
-
-
-
-```{r, message = FALSE, warning = FALSE}
-
-
-```
